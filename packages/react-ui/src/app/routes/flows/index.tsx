@@ -32,7 +32,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MessageTooltip } from '@/components/ui/message-tooltip';
 import { PermissionNeededTooltip } from '@/components/ui/permission-needed-tooltip';
 import { LoadingSpinner } from '@/components/ui/spinner';
 import { INTERNAL_ERROR_TOAST, toast } from '@/components/ui/use-toast';
@@ -60,6 +59,8 @@ import { FlowStatus, Permission, PopulatedFlow } from '@activepieces/shared';
 
 import FlowActionMenu from '../../../app/components/flow-actions-menu';
 import { TableTitle } from '../../../components/ui/table-title';
+
+import TaskLimitAlert from './task-limit-alert';
 
 const filters = [
   {
@@ -96,11 +97,12 @@ const FlowsPage = () => {
   const { platform } = platformHooks.useCurrentPlatform();
   const { gitSync } = gitSyncHooks.useGitSync(
     authenticationSession.getProjectId()!,
-    platform.gitSyncEnabled,
+    platform.environmentsEnabled,
   );
   const userHasPermissionToUpdateFlow = checkAccess(Permission.WRITE_FLOW);
-  const userHasPermissionToPushToGit = checkAccess(Permission.WRITE_GIT_REPO);
-
+  const userHasPermissionToPushToGit = checkAccess(
+    Permission.WRITE_PROJECT_RELEASE,
+  );
   const isDevelopmentBranch =
     gitSync && gitSync.branchType === GitBranchType.DEVELOPMENT;
 
@@ -134,13 +136,13 @@ const FlowsPage = () => {
     },
     onError: () => toast(INTERNAL_ERROR_TOAST),
   });
-
+  const projectId = authenticationSession.getProjectId()!;
   const { data, isLoading, refetch } = useQuery({
-    queryKey: ['flow-table', searchParams.toString()],
+    queryKey: ['flow-table', searchParams.toString(), projectId],
     staleTime: 0,
     queryFn: () => {
       const name = searchParams.get('name');
-      const status = searchParams.get('status');
+      const status = searchParams.getAll('status') as FlowStatus[];
       const cursor = searchParams.get('cursor');
       const limit = searchParams.get('limit')
         ? parseInt(searchParams.get('limit')!)
@@ -148,13 +150,11 @@ const FlowsPage = () => {
       const folderId = searchParams.get('folderId') ?? undefined;
 
       return flowsApi.list({
-        projectId: authenticationSession.getProjectId()!,
+        projectId,
         cursor: cursor ?? undefined,
         limit,
         name: name ?? undefined,
-        status: status
-          ? status.split(',').map((s) => s as FlowStatus)
-          : undefined,
+        status,
         folderId,
       });
     },
@@ -376,7 +376,6 @@ const FlowsPage = () => {
     () => [
       {
         render: (_, resetSelection) => {
-          const isDisabled = selectedRows.length === 0;
           return (
             <div onClick={(e) => e.stopPropagation()}>
               <DropdownMenu
@@ -384,15 +383,11 @@ const FlowsPage = () => {
                 open={isDropdownOpen}
                 onOpenChange={setIsDropdownOpen}
               >
-                <DropdownMenuTrigger asChild disabled={isDisabled}>
-                  <MessageTooltip
-                    message={t('Select at least one flow to perform actions')}
-                    isDisabled={isDisabled}
-                  >
+                {selectedRows.length > 0 ? (
+                  <DropdownMenuTrigger asChild>
                     <Button
-                      disabled={isDisabled}
                       className="h-9 w-full"
-                      variant={'outline'}
+                      variant={'default'}
                       onClick={() => {
                         setIsDropdownOpen(!isDropdownOpen);
                       }}
@@ -402,20 +397,20 @@ const FlowsPage = () => {
                         : t('Actions')}
                       <ChevronDown className="h-3 w-4 ml-2" />
                     </Button>
-                  </MessageTooltip>
-                </DropdownMenuTrigger>
+                  </DropdownMenuTrigger>
+                ) : null}
+
                 <DropdownMenuContent>
                   <PermissionNeededTooltip
                     hasPermission={userHasPermissionToPushToGit}
                   >
                     <PushToGitDialog
-                      flowIds={selectedRows.map((flow) => flow.version.id)}
+                      flowIds={selectedRows.map((flow) => flow.id)}
                     >
                       <DropdownMenuItem
                         disabled={!userHasPermissionToPushToGit}
                         onSelect={(e) => {
                           e.preventDefault();
-                          setIsDropdownOpen(false);
                         }}
                       >
                         <div className="flex cursor-pointer  flex-row gap-2 items-center">
@@ -533,94 +528,105 @@ const FlowsPage = () => {
   );
 
   return (
-    <div className="flex flex-col gap-4 w-full">
-      <div className="flex">
-        <TableTitle>{t('Flows')}</TableTitle>
-        <div className="ml-auto flex flex-row gap-2">
-          <PermissionNeededTooltip
-            hasPermission={doesUserHavePermissionToWriteFlow}
-          >
-            <ImportFlowDialog
-              insideBuilder={false}
-              onRefresh={() => {
-                setRefresh(refresh + 1);
-                refetch();
-              }}
+    <div className="flex flex-col gap-4 grow">
+      <TaskLimitAlert />
+      <div className="flex flex-col gap-4 w-full grow">
+        <div className="flex">
+          <TableTitle>{t('Flows')}</TableTitle>
+          <div className="ml-auto flex flex-row gap-2">
+            <PermissionNeededTooltip
+              hasPermission={doesUserHavePermissionToWriteFlow}
             >
-              <Button
-                disabled={!doesUserHavePermissionToWriteFlow}
-                variant="outline"
-                className="flex gap-2 items-center"
-              >
-                <Import className="w-4 h-4" />
-                {t('Import Flow')}
-              </Button>
-            </ImportFlowDialog>
-          </PermissionNeededTooltip>
-
-          <PermissionNeededTooltip
-            hasPermission={doesUserHavePermissionToWriteFlow}
-          >
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger
-                disabled={!doesUserHavePermissionToWriteFlow}
-                asChild
+              <ImportFlowDialog
+                insideBuilder={false}
+                onRefresh={() => {
+                  setRefresh(refresh + 1);
+                  refetch();
+                }}
               >
                 <Button
                   disabled={!doesUserHavePermissionToWriteFlow}
-                  variant="default"
+                  variant="outline"
                   className="flex gap-2 items-center"
-                  loading={isCreateFlowPending}
                 >
-                  <span>{t('New Flow')}</span>
-                  <ChevronDown className="h-4 w-4 " />
+                  <Import className="w-4 h-4" />
+                  {t('Import Flow')}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    createFlow();
-                  }}
-                  disabled={isCreateFlowPending}
+              </ImportFlowDialog>
+            </PermissionNeededTooltip>
+
+            <PermissionNeededTooltip
+              hasPermission={doesUserHavePermissionToWriteFlow}
+            >
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger
+                  disabled={!doesUserHavePermissionToWriteFlow}
+                  asChild
                 >
-                  <Plus className="h-4 w-4 me-2" />
-                  <span>{t('From scratch')}</span>
-                </DropdownMenuItem>
-                <SelectFlowTemplateDialog>
+                  <Button
+                    disabled={!doesUserHavePermissionToWriteFlow}
+                    variant="default"
+                    className="flex gap-2 items-center"
+                    loading={isCreateFlowPending}
+                  >
+                    <span>{t('New Flow')}</span>
+                    <ChevronDown className="h-4 w-4 " />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
                   <DropdownMenuItem
-                    onSelect={(e) => e.preventDefault()}
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      createFlow();
+                    }}
                     disabled={isCreateFlowPending}
                   >
-                    <Workflow className="h-4 w-4 me-2" />
-                    <span>{t('Use a template')}</span>
+                    <Plus className="h-4 w-4 me-2" />
+                    <span>{t('From scratch')}</span>
                   </DropdownMenuItem>
-                </SelectFlowTemplateDialog>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </PermissionNeededTooltip>
+                  <SelectFlowTemplateDialog>
+                    <DropdownMenuItem
+                      onSelect={(e) => e.preventDefault()}
+                      disabled={isCreateFlowPending}
+                    >
+                      <Workflow className="h-4 w-4 me-2" />
+                      <span>{t('Use a template')}</span>
+                    </DropdownMenuItem>
+                  </SelectFlowTemplateDialog>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </PermissionNeededTooltip>
+          </div>
         </div>
-      </div>
-      <div className="flex flex-row gap-4">
-        {!embedState.hideFolders && <FolderFilterList refresh={refresh} />}
-        <div className="w-full">
-          <DataTable
-            columns={columns.filter(
-              (column) =>
-                !embedState.hideFolders || column.accessorKey !== 'folderId',
-            )}
-            page={data}
-            isLoading={isLoading}
-            filters={filters}
-            bulkActions={bulkActions}
-            onRowClick={(row, newWindow) => {
-              if (newWindow) {
-                openNewWindow(`/flows/${row.id}`);
-              } else {
-                navigate(`/flows/${row.id}`);
-              }
-            }}
-          />
+        <div className="flex flex-row gap-4">
+          {!embedState.hideFolders && <FolderFilterList refresh={refresh} />}
+          <div className="w-full">
+            <DataTable
+              columns={columns.filter(
+                (column) =>
+                  !embedState.hideFolders || column.accessorKey !== 'folderId',
+              )}
+              page={data}
+              isLoading={isLoading}
+              filters={filters}
+              bulkActions={bulkActions}
+              onRowClick={(row, newWindow) => {
+                if (newWindow) {
+                  openNewWindow(
+                    authenticationSession.appendProjectRoutePrefix(
+                      `/flows/${row.id}`,
+                    ),
+                  );
+                } else {
+                  navigate(
+                    authenticationSession.appendProjectRoutePrefix(
+                      `/flows/${row.id}`,
+                    ),
+                  );
+                }
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>

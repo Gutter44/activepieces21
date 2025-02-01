@@ -1,5 +1,5 @@
 import { TlsOptions } from 'node:tls'
-import { AppSystemProp, SharedSystemProp, system } from '@activepieces/server-shared'
+import { AppSystemProp } from '@activepieces/server-shared'
 import { ApEdition, ApEnvironment, isNil } from '@activepieces/shared'
 import { DataSource, MigrationInterface } from 'typeorm'
 import { MakeStripeSubscriptionNullable1685053959806 } from '../ee/database/migrations/postgres/1685053959806-MakeStripeSubscriptionNullable'
@@ -21,6 +21,7 @@ import { ModifyBilling1694902537045 } from '../ee/database/migrations/postgres/1
 import { AddDatasourcesLimit1695916063833 } from '../ee/database/migrations/postgres/1695916063833-AddDatasourcesLimit'
 import { AddPlatform1697717995884 } from '../ee/database/migrations/postgres/1697717995884-add-platform'
 import { AddCustomDomain1698077078271 } from '../ee/database/migrations/postgres/1698077078271-AddCustomDomain'
+import { system } from '../helper/system/system'
 import { commonProperties } from './database-connection'
 import { AddPieceTypeAndPackageTypeToFlowVersion1696245170061 } from './migration/common/1696245170061-add-piece-type-and-package-type-to-flow-version'
 import { AddPieceTypeAndPackageTypeToFlowTemplate1696245170062 } from './migration/common/1696245170062-add-piece-type-and-package-type-to-flow-template'
@@ -159,9 +160,21 @@ import { AddConnectionOwner1730123432651 } from './migration/postgres/1730123432
 import { AppConnectionsSetNull1730627612799 } from './migration/postgres/1730627612799-AppConnectionsSetNull'
 import { AddFlowSchemaVersion1730760434336 } from './migration/postgres/1730760434336-AddFlowSchemaVersion'
 import { StoreTriggerEventsInFile1731247581852 } from './migration/postgres/1731247581852-StoreTriggerEventsInFile'
+import { CreateProjectRoleTable1731424289830 } from './migration/postgres/1731424289830-CreateProjectRoleTable'
 import { MigrateConnectionNames1731428722977 } from './migration/postgres/1731428722977-MigrateConnectionNames'
 import { AddGlobalConnectionsAndRbacForPlatform1731532843905 } from './migration/postgres/1731532843905-AddGlobalConnectionsAndRbacForPlatform'
 import { AddAuditLogIndicies1731711188507 } from './migration/postgres/1731711188507-AddAuditLogIndicies'
+import { AddIndiciesToRunAndTriggerData1732324567513 } from './migration/postgres/1732324567513-AddIndiciesToRunAndTriggerData'
+import { AddProjectRelationInUserInvitation1732790412900 } from './migration/postgres/1732790673766-AddProjectRelationInUserInvitation'
+import { CreateProjectReleaseTable1734418823028 } from './migration/postgres/1734418823028-CreateProjectReleaseTable'
+import { RemoveWorkerType1734439097357 } from './migration/postgres/1734439097357-RemoveWorkerType'
+import { AddCopilotSettings1734479886363 } from './migration/postgres/1734479886363-AddCopilotSettings'
+import { AddPlatformBilling1734971881345 } from './migration/postgres/1734971881345-AddPlatformBilling'
+import { AddExternalIdForFlow1735262417593 } from './migration/postgres/1735262417593-AddExternalIdForFlow'
+import { AddEnvironmentsEnabled1735267452262 } from './migration/postgres/1735267452262-AddEnvironmentsEnabled'
+import { AddUserIdentity1735590074879 } from './migration/postgres/1735590074879-AddUserIdentity'
+import { RemoveUnusedProjectBillingFields1736607721367 } from './migration/postgres/1736607721367-RemoveUnusedProjectBillingFields'
+import { RenameGitRepoPermission1736813103505 } from './migration/postgres/1736813103505-RenameGitRepoPermission'
 
 const getSslConfig = (): boolean | TlsOptions => {
     const useSsl = system.get(AppSystemProp.POSTGRES_USE_SSL)
@@ -268,8 +281,17 @@ const getMigrations = (): (new () => MigrationInterface)[] => {
         AddFlowSchemaVersion1730760434336,
         SwitchToRouter1731019013340,
         StoreTriggerEventsInFile1731247581852,
+        CreateProjectRoleTable1731424289830,
         MigrateConnectionNames1731428722977,
         AddGlobalConnectionsAndRbacForPlatform1731532843905,
+        AddIndiciesToRunAndTriggerData1732324567513,
+        AddProjectRelationInUserInvitation1732790412900,
+        RemoveWorkerType1734439097357,
+        AddCopilotSettings1734479886363,
+        AddExternalIdForFlow1735262417593,
+        AddEnvironmentsEnabled1735267452262,
+        AddUserIdentity1735590074879,
+        RenameGitRepoPermission1736813103505,
     ]
 
     const edition = system.getEdition()
@@ -325,7 +347,7 @@ const getMigrations = (): (new () => MigrationInterface)[] => {
                 CascadeProjectDeleteToActivity1710720610670,
                 AddBranchTypeToGit1711073772867,
                 PiecesProjectLimits1712279318440,
-
+                
                 // Cloud Only Migrations, before unifing the migrations.
                 ChangeToJsonToKeepKeysOrder1685991260335,
                 AddPieceTypeAndPackageTypeToFlowTemplate1696245170062,
@@ -345,7 +367,9 @@ const getMigrations = (): (new () => MigrationInterface)[] => {
                 MigrateAuditEventSchema1723489038729,
                 AddAiTokensForProjectPlan1726446092010,
                 AddAuditLogIndicies1731711188507,
-
+                AddPlatformBilling1734971881345,
+                CreateProjectReleaseTable1734418823028,
+                RemoveUnusedProjectBillingFields1736607721367,
             )
             break
         case ApEdition.COMMUNITY:
@@ -360,7 +384,7 @@ const getMigrations = (): (new () => MigrationInterface)[] => {
 }
 
 const getMigrationConfig = (): MigrationConfig => {
-    const env = system.getOrThrow<ApEnvironment>(SharedSystemProp.ENVIRONMENT)
+    const env = system.getOrThrow<ApEnvironment>(AppSystemProp.ENVIRONMENT)
 
     if (env === ApEnvironment.TESTING) {
         return {}

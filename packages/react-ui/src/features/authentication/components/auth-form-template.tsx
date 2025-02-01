@@ -14,7 +14,7 @@ import {
   ThirdPartyAuthnProvidersToShowMap,
 } from '@activepieces/shared';
 
-import { HorizontalSeparatorWithText } from '../../../components/ui/seperator';
+import { HorizontalSeparatorWithText } from '../../../components/ui/separator';
 import { flagsHooks } from '../../../hooks/flags-hooks';
 
 import { SignInForm } from './sign-in-form';
@@ -55,9 +55,7 @@ const AuthSeparator = ({
       ApFlagId.THIRD_PARTY_AUTH_PROVIDERS_TO_SHOW_MAP,
     );
 
-  return (thirdPartyAuthProviders?.google ||
-    thirdPartyAuthProviders?.github ||
-    thirdPartyAuthProviders?.saml) &&
+  return (thirdPartyAuthProviders?.google || thirdPartyAuthProviders?.saml) &&
     isEmailAuthEnabled ? (
     <HorizontalSeparatorWithText className="my-4">
       {t('OR')}

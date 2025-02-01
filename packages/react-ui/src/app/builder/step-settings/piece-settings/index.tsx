@@ -60,13 +60,11 @@ const PieceSettings = React.memo((props: PieceSettingsProps) => {
     ApFlagId.WEBHOOK_TIMEOUT_SECONDS,
   );
 
-  const { data: frontendUrl } = flagsHooks.useFlag<string>(
-    ApFlagId.FRONTEND_URL,
-  );
+  const { data: frontendUrl } = flagsHooks.useFlag<string>(ApFlagId.PUBLIC_URL);
   const markdownVariables = {
     webhookUrl: `${webhookPrefixUrl}/${props.flowId}`,
-    formUrl: `${frontendUrl}/forms/${props.flowId}`,
-    chatUrl: `${frontendUrl}/chats/${props.flowId}`,
+    formUrl: `${frontendUrl}forms/${props.flowId}`,
+    chatUrl: `${frontendUrl}chats/${props.flowId}`,
     pausedFlowTimeoutDays: pausedFlowTimeoutDays?.toString() ?? '',
     webhookTimeoutSeconds: webhookTimeoutSeconds?.toString() ?? '',
   };
@@ -75,7 +73,6 @@ const PieceSettings = React.memo((props: PieceSettingsProps) => {
     !isNil(selectedAction) && (selectedAction.requireAuth ?? true);
   const showAuthForTrigger =
     !isNil(selectedTrigger) && (selectedTrigger.requireAuth ?? true);
-
   return (
     <div className="flex flex-col gap-4 w-full">
       {!pieceModel && (

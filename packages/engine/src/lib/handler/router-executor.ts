@@ -11,7 +11,7 @@ export const routerExecuter: BaseExecutor<RouterAction> = {
         executionState,
         constants,
     }) {
-        const { censoredInput, resolvedInput } = await constants.variableService.resolve<RouterActionSettings>({
+        const { censoredInput, resolvedInput } = await constants.propsResolver.resolve<RouterActionSettings>({
             unresolvedInput: {
                 ...action.settings,
                 inputUiInfo: undefined,
@@ -60,6 +60,9 @@ async function handleRouterExecution({ action, executionState, constants, censor
 
     try {
         for (let i = 0; i < resolvedInput.branches.length; i++) {
+            if (constants.testSingleStepMode) {
+                break
+            }
             if (evaluatedConditions[i]) {
                 executionState = (await flowExecutor.execute({
                     action: action.children[i],

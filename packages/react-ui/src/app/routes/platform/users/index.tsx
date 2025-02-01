@@ -159,8 +159,8 @@ export default function UsersPage() {
                 return (
                   <div className="text-left">
                     {row.original.status === UserStatus.ACTIVE
-                      ? t('Active')
-                      : t('Inactive')}
+                      ? t('Activated')
+                      : t('Deactivated')}
                   </div>
                 );
               },
@@ -178,7 +178,7 @@ export default function UsersPage() {
                       <UpdateUserDialog
                         userId={row.id}
                         role={row.platformRole}
-                        externalId={row.externalId}
+                        externalId={row.externalId ?? undefined}
                         onUpdate={() => refetch()}
                       >
                         <Button variant="ghost" className="size-8 p-0">

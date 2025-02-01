@@ -48,6 +48,7 @@ export const AllowOnlyLoggedInUserOnlyGuard = ({
   projectHooks.prefetchProject();
   platformHooks.prefetchPlatform();
   flagsHooks.useFlags();
+
   return (
     <Suspense fallback={<LoadingScreen></LoadingScreen>}>
       <SocketProvider>{children}</SocketProvider>

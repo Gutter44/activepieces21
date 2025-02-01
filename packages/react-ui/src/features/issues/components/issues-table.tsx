@@ -40,9 +40,9 @@ export default function IssuesTable() {
   );
 
   const [searchParams] = useSearchParams();
-
+  const projectId = authenticationSession.getProjectId()!;
   const { data, isLoading } = useQuery({
-    queryKey: ['issues', searchParams.toString()],
+    queryKey: ['issues', searchParams.toString(), projectId],
     staleTime: 0,
     gcTime: 0,
     queryFn: () => {
@@ -51,7 +51,7 @@ export default function IssuesTable() {
         ? parseInt(searchParams.get(LIMIT_QUERY_PARAM)!)
         : 10;
       return issuesApi.list({
-        projectId: authenticationSession.getProjectId()!,
+        projectId,
         cursor: cursor ?? undefined,
         limit,
       });
@@ -149,7 +149,35 @@ export default function IssuesTable() {
     ],
     [userHasPermissionToMarkAsResolved, handleMarkAsResolved, t],
   );
-
+  const userHasPermissionToSeeRuns = checkAccess(Permission.READ_RUN);
+  const handleRowClick = ({
+    newWindow,
+    flowId,
+    created,
+  }: {
+    newWindow: boolean;
+    flowId: string;
+    created: string;
+  }) => {
+    const searchParams = createSearchParams({
+      flowId: flowId,
+      createdAfter: created,
+      status: [
+        FlowRunStatus.FAILED,
+        FlowRunStatus.INTERNAL_ERROR,
+        FlowRunStatus.TIMEOUT,
+      ],
+    }).toString();
+    const pathname = authenticationSession.appendProjectRoutePrefix('/runs');
+    if (newWindow) {
+      openNewWindow(pathname, searchParams);
+    } else {
+      navigate({
+        pathname,
+        search: searchParams,
+      });
+    }
+  };
   return (
     <div className="flex-col w-full">
       <div className=" flex">
@@ -198,25 +226,16 @@ export default function IssuesTable() {
             },
           },
         ]}
-        onRowClick={(row, newWindow) => {
-          const searchParams = createSearchParams({
-            flowId: row.flowId,
-            createdAfter: row.created,
-            status: [
-              FlowRunStatus.FAILED,
-              FlowRunStatus.INTERNAL_ERROR,
-              FlowRunStatus.TIMEOUT,
-            ],
-          }).toString();
-          if (newWindow) {
-            openNewWindow('/runs', searchParams);
-          } else {
-            navigate({
-              pathname: '/runs',
-              search: searchParams,
-            });
-          }
-        }}
+        onRowClick={
+          userHasPermissionToSeeRuns
+            ? (row, newWindow) =>
+                handleRowClick({
+                  newWindow,
+                  flowId: row.flowId,
+                  created: row.created,
+                })
+            : undefined
+        }
       />
     </div>
   );

@@ -1,5 +1,4 @@
-import { PlusCircledIcon } from '@radix-ui/react-icons';
-import { CheckIcon } from 'lucide-react';
+import { CheckIcon, ListFilterIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 
@@ -16,7 +15,7 @@ import {
 } from '../command';
 import { Popover, PopoverContent, PopoverTrigger } from '../popover';
 import { ScrollArea } from '../scroll-area';
-import { Separator } from '../seperator';
+import { Separator } from '../separator';
 
 type DataTableSelectPopoverProps = {
   title?: string;
@@ -41,7 +40,7 @@ const DataTableSelectPopover = ({
     <Popover>
       <PopoverTrigger asChild>
         <Button variant="outline" size="sm" className="h-8 border-dashed">
-          <PlusCircledIcon className="mr-2 size-4" />
+          <ListFilterIcon className="mr-2 size-4" />
           {title}
           {selectedValues?.size > 0 && (
             <>
@@ -78,7 +77,10 @@ const DataTableSelectPopover = ({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[200px] p-0" align="start">
+      <PopoverContent
+        className="min-w-[200px] max-w-[250px] break-all p-0"
+        align="start"
+      >
         <Command>
           <CommandInput placeholder={title} />
           <CommandList>

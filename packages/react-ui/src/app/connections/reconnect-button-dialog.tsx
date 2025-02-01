@@ -44,7 +44,11 @@ const ReconnectButtonDialog = ({
           </Button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>{t('Reconnect')}</p>
+          {!hasPermission ? (
+            <p>{t('Permission needed')}</p>
+          ) : (
+            <p>{t('Reconnect')}</p>
+          )}
         </TooltipContent>
       </Tooltip>
       {open && !isLoading && pieceModel && (
@@ -55,6 +59,7 @@ const ReconnectButtonDialog = ({
           piece={pieceModel}
           onConnectionCreated={onConnectionCreated}
           open={open}
+          key={`CreateOrEditConnectionDialog-open-${open}`}
           setOpen={setOpen}
         />
       )}

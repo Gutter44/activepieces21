@@ -18,6 +18,7 @@ import { newOrUpdatedRowTrigger } from './lib/triggers/new-or-updated-row.trigge
 import { insertMultipleRowsAction } from './lib/actions/insert-multiple-rows.action';
 import { createWorksheetAction } from './lib/actions/create-worksheet';
 import { createSpreadsheetAction } from './lib/actions/create-spreadsheet';
+import { findSpreadsheets } from './lib/actions/find-spreadsheets';
 
 export const googleSheetsAuth = PieceAuth.OAuth2({
   description: '',
@@ -33,7 +34,7 @@ export const googleSheetsAuth = PieceAuth.OAuth2({
 });
 
 export const googleSheets = createPiece({
-  minimumSupportedRelease: '0.5.0',
+  minimumSupportedRelease: '0.36.1',
   logoUrl: 'https://cdn.activepieces.com/pieces/google-sheets.png',
   categories: [PieceCategory.PRODUCTIVITY],
   authors: [
@@ -58,6 +59,7 @@ export const googleSheets = createPiece({
     clearSheetAction,
     findRowByNumAction,
     getRowsAction,
+    findSpreadsheets,
     createCustomApiCallAction({
       auth: googleSheetsAuth,
       baseUrl: () => {

@@ -6,9 +6,10 @@ import { continueIfFailureHandler, handleExecutionError, runWithExponentialBacko
 import { PausedFlowTimeoutError } from '../helper/execution-errors'
 import { pieceLoader } from '../helper/piece-loader'
 import { createConnectionService } from '../services/connections.service'
-import { createFilesService } from '../services/files.service'
 import { createFlowsContext } from '../services/flows.service'
+import { createFilesService } from '../services/step-files.service'
 import { createContextStore } from '../services/storage.service'
+import { propsProcessor } from '../variables/props-processor'
 import { ActionHandler, BaseExecutor } from './base-executor'
 import { ExecutionVerdict } from './context/flow-execution-context'
 
@@ -46,16 +47,16 @@ const executeAction: ActionHandler<PieceAction> = async ({ action, executionStat
             piecesSource: constants.piecesSource,
         })
 
-        const { resolvedInput, censoredInput } = await constants.variableService.resolve<StaticPropsValue<PiecePropertyMap>>({
+        const { resolvedInput, censoredInput } = await constants.propsResolver.resolve<StaticPropsValue<PiecePropertyMap>>({
             unresolvedInput: action.settings.input,
             executionState,
         })
 
         stepOutput.input = censoredInput
 
-        const { processedInput, errors } = await constants.variableService.applyProcessorsAndValidators(resolvedInput, pieceAction.props, piece.auth, pieceAction.requireAuth)
+        const { processedInput, errors } = await propsProcessor.applyProcessorsAndValidators(resolvedInput, pieceAction.props, piece.auth, pieceAction.requireAuth)
         if (Object.keys(errors).length > 0) {
-            throw new Error(JSON.stringify(errors))
+            throw new Error(JSON.stringify(errors, null, 2))
         }
 
         const hookResponse: HookResponse = {
@@ -91,7 +92,7 @@ const executeAction: ActionHandler<PieceAction> = async ({ action, executionStat
             server: {
                 token: constants.engineToken,
                 apiUrl: constants.internalApiUrl,
-                publicUrl: constants.publicUrl,
+                publicUrl: constants.publicApiUrl,
             },
             propsValue: processedInput,
             tags: createTagsManager(hookResponse),
@@ -101,7 +102,10 @@ const executeAction: ActionHandler<PieceAction> = async ({ action, executionStat
                 engineToken: constants.engineToken,
                 hookResponse,
             }),
-            serverUrl: constants.publicUrl,
+            /*
+                @deprecated Use server.publicApiUrl instead.
+            */
+            serverUrl: constants.publicApiUrl,
             run: {
                 id: constants.flowRunId,
                 stop: createStopHook(hookResponse),
@@ -112,7 +116,7 @@ const executeAction: ActionHandler<PieceAction> = async ({ action, executionStat
                 externalId: constants.externalProjectId,
             },
             generateResumeUrl: (params) => {
-                const url = new URL(`${constants.publicUrl}v1/flow-runs/${constants.flowRunId}/requests/${executionState.pauseRequestId}`)
+                const url = new URL(`${constants.publicApiUrl}v1/flow-runs/${constants.flowRunId}/requests/${executionState.pauseRequestId}`)
                 url.search = new URLSearchParams(params.queryParams).toString()
                 return url.toString()
             },
@@ -205,6 +209,7 @@ function createPauseHook(hookResponse: HookResponse, pauseId: string): PauseHook
                     pauseMetadata: {
                         ...req.pauseMetadata,
                         requestId: pauseId,
+                        response: req.pauseMetadata.response ?? {},
                     },
                 }
                 break

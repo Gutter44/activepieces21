@@ -67,6 +67,8 @@ const ConnectionSelect = memo((params: ConnectionSelectProps) => {
       removeBrackets(form.getValues().settings.input.auth ?? ''),
   );
 
+  const isGlobalConnection =
+    selectedConnection?.scope === AppConnectionScope.PLATFORM;
   return (
     <FormField
       control={form.control}
@@ -93,16 +95,14 @@ const ConnectionSelect = memo((params: ConnectionSelectProps) => {
             >
               <CreateOrEditConnectionDialog
                 reconnectConnection={reconnectConnection}
-                isGlobalConnection={
-                  reconnectConnection?.scope === AppConnectionScope.PLATFORM
-                }
+                isGlobalConnection={isGlobalConnection}
                 predefinedConnectionName={null}
-                key={reconnectConnection?.externalId || 'newConnection'}
                 piece={params.piece}
                 onConnectionCreated={(connection) => {
                   refetch();
                   field.onChange(addBrackets(connection.externalId));
                 }}
+                key={`CreateOrEditConnectionDialog-open-${connectionDialogOpen}`}
                 open={connectionDialogOpen}
                 setOpen={setConnectionDialogOpen}
               ></CreateOrEditConnectionDialog>
